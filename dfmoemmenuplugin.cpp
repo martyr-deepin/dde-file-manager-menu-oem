@@ -1,7 +1,20 @@
 #include "dfmoemmenuplugin.h"
 
 #include <QDir>
+#include <QDebug>
 #include <XdgDesktopFile>
+#include <QUrl>
+
+static QStringList AllMenuTypes {
+    "SingleFile",
+//    "MultiFiles",
+    "SingleDir",
+//    MultiDirs,
+    "MultiFileDirs",
+    "EmptyArea"
+};
+
+#define MENU_TYPE_KEY "X-DFM-MenuTypes"
 
 DFMOEMMenuPlugin::DFMOEMMenuPlugin()
 {
@@ -15,6 +28,24 @@ DFMOEMMenuPlugin::DFMOEMMenuPlugin()
                 continue;
             }
 
+            QStringList menuTypes;
+            if (file.contains(MENU_TYPE_KEY)) {
+                menuTypes = file.value(MENU_TYPE_KEY).toString().split(';', QString::SkipEmptyParts);
+                for (const QString &oneType : menuTypes) {
+                    if (!AllMenuTypes.contains(oneType)) {
+                        menuTypes.removeAll(oneType);
+                    }
+                }
+            } else {
+                menuTypes = AllMenuTypes;
+            }
+
+            if (menuTypes.isEmpty()) {
+                qDebug() << "[OEM Menu Support] Entry will probably not be shown due to empty or have no valid"
+                         << MENU_TYPE_KEY << "key in the desktop file.";
+                qDebug() << "[OEM Menu Support] Details:" << fileInfo.filePath() << "with entry name" << file.name();
+            }
+
             QAction *action = new QAction(file.icon(), file.name(), this);
 
             connect(action, &QAction::triggered, this, [action, file](){
@@ -23,6 +54,10 @@ DFMOEMMenuPlugin::DFMOEMMenuPlugin()
             });
 
             actionList.append(action);
+
+            for (const QString &oneType : menuTypes) {
+                actionListByType[oneType].append(action);
+            }
         }
     }
 }
@@ -31,14 +66,27 @@ QList<QAction *> DFMOEMMenuPlugin::additionalMenu(const QStringList &files, cons
 {
     Q_UNUSED(currentDir);
 
+    QString menuType = "Unknown";
+
+    if (files.count() == 1) {
+        QUrl url(files.first());
+        menuType = QFileInfo(url.toLocalFile()).isDir() ? "SingleDir" : "SingleFile";
+    } else {
+        menuType = "MultiFileDirs";
+    }
+
+    // Add file list data.
     for (QAction * action : actionList) {
         action->setData(files);
     }
 
-    return actionList;
+    return actionListByType[menuType];
 }
 
 QList<QAction *> DFMOEMMenuPlugin::additionalEmptyMenu(const QString &currentDir, bool onDesktop)
 {
-    return MenuInterface::additionalEmptyMenu(currentDir, onDesktop);
+    Q_UNUSED(currentDir);
+    Q_UNUSED(onDesktop);
+
+    return actionListByType["EmptyArea"];
 }

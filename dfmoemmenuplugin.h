@@ -21,6 +21,7 @@ public:
 
 private:
     QList<QAction *> actionList;
+    QMap<QString, QList<QAction *>> actionListByType;
 };
 
 #endif // DFMOEMMENUPLUGIN_H

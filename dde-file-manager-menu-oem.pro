@@ -1,7 +1,7 @@
 # Still need the widgets module since MenuInterface need it.
 QT       += widgets
 
-CONFIG   += plugins link_pkgconfig
+CONFIG   += plugin link_pkgconfig
 PKGCONFIG += dde-file-manager Qt5Xdg
 
 TARGET = dde-file-manager-menu-oem-plugin

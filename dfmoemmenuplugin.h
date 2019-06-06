@@ -13,6 +13,7 @@ public:
     DFMOEMMenuPlugin();
 
     QList<QAction*> additionalMenu(const QStringList &files, const QString& currentDir) override;
+    QList<QAction*> additionalEmptyMenu(const QString &currentDir, bool onDesktop = false) override;
 
 //    static QList<QAction *> loadMenuExtensionActions(const DUrlList &urlList, const DUrl &currentUrl, bool onDesktop = false);
 //    static QList<QAction *> jsonToActions(const QJsonArray &data, const DUrlList &urlList, const DUrl &currentUrl,

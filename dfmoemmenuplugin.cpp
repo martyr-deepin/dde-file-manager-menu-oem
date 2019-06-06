@@ -37,3 +37,8 @@ QList<QAction *> DFMOEMMenuPlugin::additionalMenu(const QStringList &files, cons
 
     return actionList;
 }
+
+QList<QAction *> DFMOEMMenuPlugin::additionalEmptyMenu(const QString &currentDir, bool onDesktop)
+{
+    return MenuInterface::additionalEmptyMenu(currentDir, onDesktop);
+}

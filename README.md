@@ -4,7 +4,9 @@
 
 ### OEM 方式
 
-每个定制菜单项为一个独立的 Application 类型的 `.desktop` 文件，至少需要包含 `Name` 和 `Exec` 字段，`Name` 的内容为添加到上下文菜单中时将会显示的名称，`Exec` 的内容为当单击此新增的菜单项时将会执行的行为（遵循 desktop 文件规范标准，可以使用 `%u` 等参数）。
+每个定制菜单项为一个独立的 Application 类型的 `.desktop` 文件（遵循 [desktop-entry-spec](https://standards.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#extra-actions-identifier)）。对于每个文件，在其 `[Desktop Entry]` 下至少需要包含 `Name` 和 `Exec` 字段，`Name` 的内容为添加到上下文菜单中时将会显示的名称，`Exec` 的内容为当单击此新增的菜单项时将会执行的行为（遵循 desktop 文件规范标准，可以使用 `%u` 等参数）。
+
+定制菜单支持使用 `Actions` 字段增加指定的子菜单，子菜单需至少包含 `Name` 和 `Exec` 字段，可以通过 `Icon` 指定图标。若指定子菜单，则入口项（原本 `[Desktop Entry]` 下）的 `Exec` 字段将不再有效。
 
 对于文件管理器菜单项定制，支持额外的字段可供定制，可以使用 `X-DFM-MenuTypes` 字段来指定菜单项在何种情况会显示，此字段可包含一个或多个类型，其中包括 `SingleFile`, `SingleDir`, `MultiFileDirs` 和 `EmptyArea` 四种。
 
@@ -23,6 +25,8 @@ OEM 厂商需要将待添加的 `desktop` 文件放置到 `/usr/share/deepin/dde
 
 可以将下面的示例存储为 `test.desktop` 并放置到 `/usr/share/deepin/dde-file-manager/oem-menuextensions/` 中，关闭现有的所有文件管理器窗口并打开新的文件管理器窗口，定制的菜单将会出现在单独目录或多选文件的情况的上下文菜单中。
 
+### 示例 1 - 单项菜单
+
 ``` ini
 [Desktop Entry]
 Type=Application
@@ -30,6 +34,23 @@ Exec=/home/wzc/Temp/test.sh %U
 Icon=utilities-terminal
 Name=示例菜单项名称
 X-DFM-MenuTypes=SingleDir;MultiFileDirs;
+```
+
+### 示例 2 - 包含子菜单
+
+注意这种情况时，由于包含子菜单，故在 `[Desktop Entry]` 下添加 `Exec` 不会起任何作用。另外，`X-DFM-MenuTypes` 只能用在 `[Desktop Entry]` 项目中，不能用在子菜单中。
+
+``` ini
+[Desktop Entry]
+Type=Application
+Icon=utilities-terminal
+Name=示例菜单项名称
+Actions=TestAction;
+X-DFM-MenuTypes=SingleDir;MultiFileDirs;
+
+[Desktop Action TestAction]
+Name=示例子菜单
+Exec=/home/wzc/Temp/test.sh %U
 ```
 
 ### 菜单 OEM 支持插件安装方式

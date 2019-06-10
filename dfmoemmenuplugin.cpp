@@ -4,6 +4,7 @@
 #include <QDebug>
 #include <XdgDesktopFile>
 #include <QUrl>
+#include <QMenu>
 
 static QStringList AllMenuTypes {
     "SingleFile",
@@ -47,6 +48,19 @@ DFMOEMMenuPlugin::DFMOEMMenuPlugin()
             }
 
             QAction *action = new QAction(file.icon(), file.name(), this);
+            QStringList entryActionList = file.actions();
+            if (!entryActionList.isEmpty()) {
+                QMenu *menu = new QMenu();
+                for (const QString &actionName : entryActionList) {
+                    QAction *subAction = new QAction(file.actionIcon(actionName), file.actionName(actionName), this);
+                    connect(subAction, &QAction::triggered, this, [subAction, actionName, file](){
+                        QStringList files = subAction->data().toStringList();
+                        file.actionActivate(actionName, files);
+                    });
+                    menu->addAction(subAction);
+                }
+                action->setMenu(menu);
+            }
 
             connect(action, &QAction::triggered, this, [action, file](){
                 QStringList files = action->data().toStringList();
@@ -78,6 +92,11 @@ QList<QAction *> DFMOEMMenuPlugin::additionalMenu(const QStringList &files, cons
     // Add file list data.
     for (QAction * action : actionList) {
         action->setData(files);
+        if (action->menu()) {
+            for (QAction * subAction : action->menu()->actions()) {
+                subAction->setData(files);
+            }
+        }
     }
 
     return actionListByType[menuType];

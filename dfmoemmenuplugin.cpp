@@ -47,7 +47,9 @@ DFMOEMMenuPlugin::DFMOEMMenuPlugin()
                 qDebug() << "[OEM Menu Support] Details:" << fileInfo.filePath() << "with entry name" << file.name();
             }
 
-            QAction *action = new QAction(file.icon(), file.name(), this);
+            // the XdgDesktopFile::icon() empty fallback is not really an empty fallback, so we need to check it manually.
+            QString iconStr = file.localizedValue("Icon").toString();
+            QAction *action = new QAction(iconStr.isEmpty() ? QIcon() : file.icon(), file.name(), this);
             QStringList entryActionList = file.actions();
             if (!entryActionList.isEmpty()) {
                 QMenu *menu = new QMenu();

@@ -1,4 +1,5 @@
 #include "dfmoemmenuplugin.h"
+#include "dfileservices.h"
 
 #include <QDir>
 #include <QDebug>
@@ -16,6 +17,7 @@ static QStringList AllMenuTypes {
 };
 
 #define MENU_TYPE_KEY "X-DFM-MenuTypes"
+#define MIME_TYPE_KEY "X-DFM-MimeTypes"
 
 DFMOEMMenuPlugin::DFMOEMMenuPlugin()
 {
@@ -70,6 +72,7 @@ DFMOEMMenuPlugin::DFMOEMMenuPlugin()
             });
 
             actionList.append(action);
+            action->setProperty(MIME_TYPE_KEY, file.mimeTypes());
 
             for (const QString &oneType : menuTypes) {
                 actionListByType[oneType].append(action);
@@ -83,9 +86,10 @@ QList<QAction *> DFMOEMMenuPlugin::additionalMenu(const QStringList &files, cons
     Q_UNUSED(currentDir);
 
     QString menuType = "Unknown";
+    QUrl url;
 
     if (files.count() == 1) {
-        QUrl url(files.first());
+        url.setUrl(files.first());
         menuType = QFileInfo(url.toLocalFile()).isDir() ? "SingleDir" : "SingleFile";
     } else {
         menuType = "MultiFileDirs";
@@ -101,7 +105,46 @@ QList<QAction *> DFMOEMMenuPlugin::additionalMenu(const QStringList &files, cons
         }
     }
 
-    return actionListByType[menuType];
+    QList<QAction *> actions = actionListByType[menuType];
+    if (url.isEmpty())
+        return  actions;
+
+    const DAbstractFileInfoPointer &file_info = DFileService::instance()->createFileInfo(this, url);
+    if (!file_info)
+        return {};
+
+    QString fileMimeType = file_info->mimeType().name().toLower();
+    for (auto it = actions.begin(); it != actions.end(); ) {
+        QAction * action = *it;
+
+        if(action) {
+            QStringList supportMimeTypes =  action->property(MIME_TYPE_KEY).toStringList();
+            supportMimeTypes.removeAll({});
+            bool match = supportMimeTypes.size() == 0; // no types ==> *
+            for (QString mt : supportMimeTypes) {
+                mt = mt.toLower();
+                if (mt == fileMimeType) {
+                    match = true;
+                    break;
+                }
+
+                int starPos = mt.indexOf("*");
+                if (starPos >=0 &&  mt.left(starPos) == fileMimeType.left(starPos)) {
+                    match = true;
+                    break;
+                }
+            }
+
+            if (!match) {
+                it = actions.erase(it);
+                continue;
+            }
+        }
+
+        ++it;
+    }
+
+    return actions;
 }
 
 QList<QAction *> DFMOEMMenuPlugin::additionalEmptyMenu(const QString &currentDir, bool onDesktop)

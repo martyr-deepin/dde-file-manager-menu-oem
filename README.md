@@ -19,6 +19,8 @@
 
 可以使用 `;` 作为分割填写多个值，但注意，包含 `X-DFM-MenuTypes` 字段但内容为空的情况和不包含 `X-DFM-MenuTypes` 字段的情况不同，包含但为空将不会在任何位置显示，不包含将会视为会在任何情况下显示。
 
+定制菜单支持使用 `MimeType` 可以根据被选中的文件类型决定菜单项是否显示被添加的项，支持模糊匹配（如 `MimeType=image/*;` ）， `MimeType` 过滤文件类型目前只支持选中单文件（即 `X-DFM-MenuTypes` 包含 `SingleFile` ）时有效。同 `X-DFM-MenuTypes` 一样， `MimeType` 只能用在 `[Desktop Entry]` 项目中，使用 `;` 作为分割填写多个值， `MimeType` 字段但内容为空的情况和不包含 `MimeType` 字段的情况不同，包含但为空将不会在任何位置显示，不包含将会视为 `MimeType=*;`。
+
 OEM 厂商需要将待添加的 `desktop` 文件放置到 `/usr/share/deepin/dde-file-manager/oem-menuextensions/` 位置，在下次启动文件管理器时[^1]，选中任意一个或多个文件并触发上下文菜单，将可以看到新增的项目位于其中。
 
 ### 示例 `.desktop` 文件
@@ -34,13 +36,11 @@ Exec=/home/wzc/Temp/test.sh %U
 Icon=utilities-terminal
 Name=示例菜单项名称
 X-DFM-MenuTypes=SingleDir;MultiFileDirs;
-MimeType=text/plain;
 ```
 
 ### 示例 2 - 包含子菜单
 
 注意这种情况时，由于包含子菜单，故在 `[Desktop Entry]` 下添加 `Exec` 不会起任何作用。另外，`X-DFM-MenuTypes` 只能用在 `[Desktop Entry]` 项目中，不能用在子菜单中。
-支持根据 `MimeType` 来决定菜单项是否显示被添加的项，支持模糊匹配（如 `MimeType=image/*;` ）， `MimeType` 过滤文件类型目前只支持选中单文件（即 `X-DFM-MenuTypes` 包含 `SingleFile` ）时有效。为了和之前配置保持兼容， 默认不写 `MimeType` 时为不过滤（等同于 `MimeType=*;` ）。同 `X-DFM-MenuTypes` 一样， `MimeType` 只能用在 `[Desktop Entry]` 项目中。
 
 ``` ini
 [Desktop Entry]
@@ -49,7 +49,6 @@ Icon=utilities-terminal
 Name=示例菜单项名称
 Actions=TestAction;
 X-DFM-MenuTypes=SingleDir;MultiFileDirs;
-MimeType=text/plain;
 
 [Desktop Action TestAction]
 Name=示例子菜单
@@ -68,13 +67,13 @@ cd /usr/share/deepin/dde-file-manager/oem-menuextensions
 ```
 sudo deepin-editor copyfilepath.desktop
 ```
-3. 在文件中加入以下内容， `Icon` 图标可以去 `/usr/share/icons/` 中选择合适的图标。
+3. 在文件中加入以下内容， `Icon` 图标可以去 `/usr/share/icons/` 中选择合适的图标。 
 ```
 [Desktop Entry]
 Type=Application
 Icon=edit-copy
 Name=复制文件路径
-X-DFM-MenuTypes=SingleDir;SingleFile;
+X-DFM-MenuTypes=SingleFile;
 Exec=~/copyfilepath.sh %u
 MimeType=text/plain;
 ```

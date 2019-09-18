@@ -34,11 +34,13 @@ Exec=/home/wzc/Temp/test.sh %U
 Icon=utilities-terminal
 Name=示例菜单项名称
 X-DFM-MenuTypes=SingleDir;MultiFileDirs;
+MimeType=text/plain;
 ```
 
 ### 示例 2 - 包含子菜单
 
 注意这种情况时，由于包含子菜单，故在 `[Desktop Entry]` 下添加 `Exec` 不会起任何作用。另外，`X-DFM-MenuTypes` 只能用在 `[Desktop Entry]` 项目中，不能用在子菜单中。
+支持根据 `MimeType` 来决定菜单项是否显示被添加的项，支持模糊匹配（如 `MimeType=image/*;` ）， `MimeType` 过滤文件类型目前只支持选中单文件（即 `X-DFM-MenuTypes` 包含 `SingleFile` ）时有效。为了和之前配置保持兼容， 默认不写 `MimeType` 时为不过滤（等同于 `MimeType=*;` ）。同 `X-DFM-MenuTypes` 一样， `MimeType` 只能用在 `[Desktop Entry]` 项目中。
 
 ``` ini
 [Desktop Entry]
@@ -47,11 +49,46 @@ Icon=utilities-terminal
 Name=示例菜单项名称
 Actions=TestAction;
 X-DFM-MenuTypes=SingleDir;MultiFileDirs;
+MimeType=text/plain;
 
 [Desktop Action TestAction]
 Name=示例子菜单
 Exec=/home/wzc/Temp/test.sh %U
 ```
+
+### 完整示例 - 复制文件路径
+
+1. 安装 `dde-file-manager-menu-oem` 后， 切换到 `.desktop` 文件所在目录 `/usr/share/deepin/dde-file-manager/oem-menuextensions/` 。
+```
+sudo mkdir /usr/share/deepin/dde-file-manager
+sudo mkdir /usr/share/deepin/dde-file-manager/oem-menuextensions
+cd /usr/share/deepin/dde-file-manager/oem-menuextensions
+```
+2. 使用文本编辑器（如 `deepin-editor` 或 `vim` ）创建一个文本文件（需要root权限保存）, 名称可以自定义， 后缀名为`.desktop`。
+```
+sudo deepin-editor copyfilepath.desktop
+```
+3. 在文件中加入以下内容， `Icon` 图标可以去 `/usr/share/icons/` 中选择合适的图标。
+```
+[Desktop Entry]
+Type=Application
+Icon=edit-copy
+Name=复制文件路径
+X-DFM-MenuTypes=SingleDir;SingleFile;
+Exec=~/copyfilepath.sh %u
+MimeType=text/plain;
+```
+4. 在主目录下创建 `copyfilepath.sh` 脚本。
+```
+cd ~
+deepin-editor copyfilepath.sh
+```
+在文本中加入以下内容
+```
+#!/bin/bash
+echo -n $1 | xclip -i -selection clipboard
+```
+至此，重新启动文件管理器，文件列表中常规文本文件的右键菜单会多一个菜单项 `复制文件路径`，点击即可将文件路径复制到剪切板中。
 
 ### 菜单 OEM 支持插件安装方式
 

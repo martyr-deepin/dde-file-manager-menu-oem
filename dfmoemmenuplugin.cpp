@@ -1,4 +1,5 @@
 #include "dfmoemmenuplugin.h"
+#include "dfileservices.h"
 
 #include <QDir>
 #include <QDebug>
@@ -16,6 +17,7 @@ static QStringList AllMenuTypes {
 };
 
 #define MENU_TYPE_KEY "X-DFM-MenuTypes"
+#define MIME_TYPE_KEY "X-DFM-MimeTypes"
 
 DFMOEMMenuPlugin::DFMOEMMenuPlugin()
 {
@@ -70,6 +72,7 @@ DFMOEMMenuPlugin::DFMOEMMenuPlugin()
             });
 
             actionList.append(action);
+            action->setProperty(MIME_TYPE_KEY, file.mimeTypes());
 
             for (const QString &oneType : menuTypes) {
                 actionListByType[oneType].append(action);
@@ -78,14 +81,30 @@ DFMOEMMenuPlugin::DFMOEMMenuPlugin()
     }
 }
 
+void appendParentMineType(const QStringList &parentmimeTypes,  QStringList& mimeTypes)
+{
+    if (parentmimeTypes.size()==0)
+        return;
+
+    for (const QString &mtName : parentmimeTypes) {
+        QMimeDatabase db;
+        QMimeType mt = db.mimeTypeForName(mtName);
+        mimeTypes.append(mt.name());
+        mimeTypes.append(mt.aliases());
+        QStringList pmts = mt.parentMimeTypes();
+        appendParentMineType(pmts, mimeTypes);
+    }
+}
+
 QList<QAction *> DFMOEMMenuPlugin::additionalMenu(const QStringList &files, const QString &currentDir)
 {
     Q_UNUSED(currentDir);
 
     QString menuType = "Unknown";
+    QUrl url;
 
     if (files.count() == 1) {
-        QUrl url(files.first());
+        url.setUrl(files.first());
         menuType = QFileInfo(url.toLocalFile()).isDir() ? "SingleDir" : "SingleFile";
     } else {
         menuType = "MultiFileDirs";
@@ -101,7 +120,61 @@ QList<QAction *> DFMOEMMenuPlugin::additionalMenu(const QStringList &files, cons
         }
     }
 
-    return actionListByType[menuType];
+    QList<QAction *> actions = actionListByType[menuType];
+    if (url.isEmpty())
+        return  actions;
+
+    const DAbstractFileInfoPointer &file_info = DFileService::instance()->createFileInfo(this, url);
+    if (!file_info)
+        return {};
+
+    QStringList fileMimeTypes;
+    fileMimeTypes.append(file_info->mimeType().name());
+    fileMimeTypes.append(file_info->mimeType().aliases());
+
+    const QMimeType &mt = file_info->mimeType();
+    appendParentMineType(mt.parentMimeTypes(), fileMimeTypes);
+    fileMimeTypes.removeAll({});
+
+    auto isSupport = [](const QString &mt, const QStringList &fileMimeTypes)->bool{
+        foreach(const QString &fmt, fileMimeTypes){
+            if (fmt.contains(mt, Qt::CaseInsensitive))
+                return true;
+        }
+        return false;
+    };
+
+
+    for (auto it = actions.begin(); it != actions.end(); ) {
+        QAction * action = *it;
+
+        if(action) {
+            QStringList supportMimeTypes =  action->property(MIME_TYPE_KEY).toStringList();
+            supportMimeTypes.removeAll({});
+            bool match = supportMimeTypes.size() == 0; // no types ==> *
+            for (QString mt : supportMimeTypes) {
+                if (fileMimeTypes.contains(mt, Qt::CaseInsensitive)) {
+                    match = true;
+                    break;
+                }
+
+                int starPos = mt.indexOf("*");
+                if (starPos >=0 && isSupport(mt.left(starPos), fileMimeTypes)) {
+                    match = true;
+                    break;
+                }
+            }
+
+            if (!match) {
+                it = actions.erase(it);
+                continue;
+            }
+        }
+
+        ++it;
+    }
+
+    return actions;
 }
 
 QList<QAction *> DFMOEMMenuPlugin::additionalEmptyMenu(const QString &currentDir, bool onDesktop)

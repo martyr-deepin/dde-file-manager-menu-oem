@@ -81,6 +81,21 @@ DFMOEMMenuPlugin::DFMOEMMenuPlugin()
     }
 }
 
+void appendParentMineType(const QStringList &parentmimeTypes,  QStringList& mimeTypes)
+{
+    if (parentmimeTypes.size()==0)
+        return;
+
+    for (const QString &mtName : parentmimeTypes) {
+        QMimeDatabase db;
+        QMimeType mt = db.mimeTypeForName(mtName);
+        mimeTypes.append(mt.name());
+        mimeTypes.append(mt.aliases());
+        QStringList pmts = mt.parentMimeTypes();
+        appendParentMineType(pmts, mimeTypes);
+    }
+}
+
 QList<QAction *> DFMOEMMenuPlugin::additionalMenu(const QStringList &files, const QString &currentDir)
 {
     Q_UNUSED(currentDir);
@@ -113,7 +128,23 @@ QList<QAction *> DFMOEMMenuPlugin::additionalMenu(const QStringList &files, cons
     if (!file_info)
         return {};
 
-    QString fileMimeType = file_info->mimeType().name().toLower();
+    QStringList fileMimeTypes;
+    fileMimeTypes.append(file_info->mimeType().name());
+    fileMimeTypes.append(file_info->mimeType().aliases());
+
+    const QMimeType &mt = file_info->mimeType();
+    appendParentMineType(mt.parentMimeTypes(), fileMimeTypes);
+    fileMimeTypes.removeAll({});
+
+    auto isSupport = [](const QString &mt, const QStringList &fileMimeTypes)->bool{
+        foreach(const QString &fmt, fileMimeTypes){
+            if (fmt.contains(mt, Qt::CaseInsensitive))
+                return true;
+        }
+        return false;
+    };
+
+
     for (auto it = actions.begin(); it != actions.end(); ) {
         QAction * action = *it;
 
@@ -122,14 +153,13 @@ QList<QAction *> DFMOEMMenuPlugin::additionalMenu(const QStringList &files, cons
             supportMimeTypes.removeAll({});
             bool match = supportMimeTypes.size() == 0; // no types ==> *
             for (QString mt : supportMimeTypes) {
-                mt = mt.toLower();
-                if (mt == fileMimeType) {
+                if (fileMimeTypes.contains(mt, Qt::CaseInsensitive)) {
                     match = true;
                     break;
                 }
 
                 int starPos = mt.indexOf("*");
-                if (starPos >=0 &&  mt.left(starPos) == fileMimeType.left(starPos)) {
+                if (starPos >=0 && isSupport(mt.left(starPos), fileMimeTypes)) {
                     match = true;
                     break;
                 }

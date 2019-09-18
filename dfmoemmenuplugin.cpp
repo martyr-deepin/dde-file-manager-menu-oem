@@ -158,6 +158,7 @@ QList<QAction *> DFMOEMMenuPlugin::additionalMenu(const QStringList &files, cons
             QStringList supportMimeTypes =  action->property(MIME_TYPE_KEY).toStringList();
             supportMimeTypes.removeAll({});
             bool match = false; // if MimeType exists but value is empty, action will not show
+
             for (QString mt : supportMimeTypes) {
                 if (fileMimeTypes.contains(mt, Qt::CaseInsensitive)) {
                     match = true;

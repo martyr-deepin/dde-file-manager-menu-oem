@@ -72,7 +72,8 @@ DFMOEMMenuPlugin::DFMOEMMenuPlugin()
             });
 
             actionList.append(action);
-            action->setProperty(MIME_TYPE_KEY, file.mimeTypes());
+            if (file.contains("MimeType"))
+                action->setProperty(MIME_TYPE_KEY, file.mimeTypes());
 
             for (const QString &oneType : menuTypes) {
                 actionListByType[oneType].append(action);
@@ -149,9 +150,15 @@ QList<QAction *> DFMOEMMenuPlugin::additionalMenu(const QStringList &files, cons
         QAction * action = *it;
 
         if(action) {
+            // MimeType not exist == MimeType=*
+            if (action->property(MIME_TYPE_KEY).isNull()) {
+                continue;
+            }
+
             QStringList supportMimeTypes =  action->property(MIME_TYPE_KEY).toStringList();
             supportMimeTypes.removeAll({});
-            bool match = supportMimeTypes.size() == 0; // no types ==> *
+            bool match = false; // if MimeType exists but value is empty, action will not show
+
             for (QString mt : supportMimeTypes) {
                 if (fileMimeTypes.contains(mt, Qt::CaseInsensitive)) {
                     match = true;

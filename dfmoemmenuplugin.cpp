@@ -152,6 +152,7 @@ QList<QAction *> DFMOEMMenuPlugin::additionalMenu(const QStringList &files, cons
         if(action) {
             // MimeType not exist == MimeType=*
             if (action->property(MIME_TYPE_KEY).isNull()) {
+                ++it;
                 continue;
             }
 
